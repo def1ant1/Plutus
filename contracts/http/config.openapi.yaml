@@ -1,0 +1,446 @@
+openapi: 3.1.0
+info:
+  title: Plutus Configuration Service API
+  version: 2025.1.0
+  description: |
+    Residency-aware configuration APIs that allow platform operators to manage
+    runtime flags, pricing rules, and policy bindings per tenant. Endpoints enforce
+    optimistic concurrency, audit immutability, and maintain parity with policy bundles.
+  contact:
+    name: Plutus Platform Operations
+    email: platform-ops@plutus.example.com
+servers:
+  - url: https://{region}.api.plutus.example.com/config
+    variables:
+      region:
+        default: us1
+        enum: [us1, eu1, ap1]
+        description: Residency cell where configuration changes are persisted.
+  - url: https://sandbox.api.plutus.example.com/config
+    description: Ephemeral sandbox with reduced guardrails for integration testing.
+security:
+  - oauth2: ["config.manage", "config.read"]
+  - workloadSaJwt: []
+tags:
+  - name: ConfigSets
+    description: Manage logical configuration bundles referencing ABAC policies.
+  - name: Secrets
+    description: Rotate secret materials synchronized with HashiCorp Vault.
+  - name: Metadata
+    description: Health/status and schema discovery endpoints.
+paths:
+  /config-sets:
+    get:
+      tags: [ConfigSets]
+      summary: List config sets for a tenant residency cell.
+      description: Retrieves configuration bundles scoped to the specified residency zone including latest revision metadata.
+      operationId: listConfigSets
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ResidencyZone'
+        - name: includeDrafts
+          in: query
+          schema:
+            type: boolean
+            default: false
+          description: Include draft configs not yet promoted to production.
+      responses:
+        '200':
+          description: Collection of config sets sorted by updatedAt.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfigSetCollection'
+        '401':
+          $ref: '#/components/responses/AuthError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+    post:
+      tags: [ConfigSets]
+      summary: Create or replace a config set.
+      description: Stores a draft configuration set or merges updates into an existing bundle using optimistic concurrency.
+      operationId: upsertConfigSet
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ResidencyZone'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfigSetDraft'
+      responses:
+        '200':
+          description: Config set stored with a new version hash.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfigSet'
+        '202':
+          description: Config set queued for asynchronous merge if conflicts detected.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfigSetAccepted'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+  /config-sets/{configSetId}:
+    get:
+      tags: [ConfigSets]
+      summary: Retrieve a config set by identifier.
+      description: Returns a full config set with governance history for auditing and promotion readiness checks.
+      operationId: getConfigSet
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ResidencyZone'
+        - name: configSetId
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: 'cfg_[a-zA-Z0-9]{10}'
+      responses:
+        '200':
+          description: Config set with history and governance metadata.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfigSet'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+  /config-sets/{configSetId}/promote:
+    post:
+      tags: [ConfigSets]
+      summary: Promote a draft config to active status.
+      description: Applies governance controls and emits config.changed events when a draft transitions to active or scheduled.
+      operationId: promoteConfigSet
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ResidencyZone'
+        - name: configSetId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [expectedRevision]
+              properties:
+                expectedRevision:
+                  type: string
+                  description: Revision fingerprint to enforce optimistic concurrency.
+                activationAt:
+                  type: string
+                  format: date-time
+                  description: Optional scheduled activation time in residency cell timezone.
+      responses:
+        '200':
+          description: Config promotion accepted and lifecycle event emitted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PromotionResult'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+        '412':
+          $ref: '#/components/responses/PreconditionFailed'
+  /secrets/{secretKey}:
+    put:
+      tags: [Secrets]
+      summary: Rotate a tenant secret synchronized with Vault transit engine.
+      description: Validates secret material and replicates rotations to all subscribed workloads within the residency cell.
+      operationId: rotateSecret
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - name: secretKey
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: 'secret_[a-z0-9\-]{6,32}'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SecretRotationRequest'
+      responses:
+        '200':
+          description: Secret rotated and distributed to configured services.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SecretRotationResult'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /metadata/openapi:
+    get:
+      tags: [Metadata]
+      summary: Fetch the canonical OpenAPI contract for this service.
+      description: Used by automation to mirror the latest API specification.
+      operationId: fetchOpenApi
+      responses:
+        '200':
+          description: Raw OpenAPI document.
+          content:
+            application/yaml:
+              schema:
+                type: string
+      security: []
+components:
+  securitySchemes:
+    oauth2:
+      type: oauth2
+      flows:
+        clientCredentials:
+          tokenUrl: https://iam.api.plutus.example.com/oauth2/token
+          scopes:
+            config.manage: Manage tenant configuration resources.
+            config.read: Read configuration metadata.
+    workloadSaJwt:
+      type: http
+      scheme: bearer
+      bearerFormat: jwt
+      description: Workload identity tokens minted by platform service accounts with residency claims.
+  parameters:
+    TenantId:
+      name: X-Tenant-Id
+      in: header
+      required: true
+      schema:
+        type: string
+      description: Tenant canonical identifier.
+    ResidencyZone:
+      name: X-Tenant-Residency
+      in: header
+      required: true
+      schema:
+        type: string
+        enum: [US, EU, APAC]
+      description: Residency zone to ensure configuration writes do not cross regions.
+  schemas:
+    ConfigSetCollection:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ConfigSetSummary'
+    ConfigSetSummary:
+      type: object
+      required: [configSetId, name, revision, updatedAt, residency]
+      properties:
+        configSetId:
+          type: string
+        name:
+          type: string
+        revision:
+          type: string
+        updatedAt:
+          type: string
+          format: date-time
+        residency:
+          type: string
+          enum: [US, EU, APAC]
+        policyBundles:
+          type: array
+          items:
+            type: string
+          description: Referenced OPA bundle identifiers required to activate the config set.
+    ConfigSetDraft:
+      type: object
+      required: [configSetId, name, revision, payload, residency]
+      properties:
+        configSetId:
+          type: string
+        name:
+          type: string
+        revision:
+          type: string
+          description: Revision fingerprint provided by caller. Required for concurrency guards.
+        payload:
+          type: object
+          additionalProperties: {}
+          description: Arbitrary JSON configuration payload validated by policy engine.
+        residency:
+          type: string
+          enum: [US, EU, APAC]
+        governanceTags:
+          type: array
+          items:
+            type: string
+    ConfigSet:
+      allOf:
+        - $ref: '#/components/schemas/ConfigSetDraft'
+        - type: object
+          required: [createdAt, updatedAt, createdBy, updatedBy, audit]
+          properties:
+            createdAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
+            createdBy:
+              type: string
+            updatedBy:
+              type: string
+            audit:
+              $ref: '#/components/schemas/AuditTrail'
+            status:
+              type: string
+              enum: [DRAFT, ACTIVE, RETIRED]
+    ConfigSetAccepted:
+      type: object
+      required: [configSetId, resolution]
+      properties:
+        configSetId:
+          type: string
+        resolution:
+          type: string
+          enum: [QUEUED_FOR_MERGE]
+        audit:
+          $ref: '#/components/schemas/AuditTrail'
+    PromotionResult:
+      type: object
+      required: [configSetId, status, effectiveAt]
+      properties:
+        configSetId:
+          type: string
+        status:
+          type: string
+          enum: [PROMOTED, SCHEDULED]
+        effectiveAt:
+          type: string
+          format: date-time
+        emittedEventId:
+          type: string
+          description: ID of `config.changed` AsyncAPI event.
+    SecretRotationRequest:
+      type: object
+      required: [material, residency]
+      properties:
+        material:
+          type: string
+          format: byte
+          description: Base64 encoded secret. Stored encrypted with residency-specific KMS keys.
+        residency:
+          type: string
+          enum: [US, EU, APAC]
+        justification:
+          type: string
+          description: Free-form text captured in audit trail.
+    SecretRotationResult:
+      type: object
+      required: [secretKey, version, distributedAt]
+      properties:
+        secretKey:
+          type: string
+        version:
+          type: string
+        distributedAt:
+          type: string
+          format: date-time
+        consumers:
+          type: array
+          items:
+            type: object
+            required: [service, status]
+            properties:
+              service:
+                type: string
+              status:
+                type: string
+                enum: [DELIVERED, PENDING, FAILED]
+              lastAttemptAt:
+                type: string
+                format: date-time
+        audit:
+          $ref: '#/components/schemas/AuditTrail'
+    AuditTrail:
+      type: object
+      required: [traceId, actor, residency]
+      properties:
+        traceId:
+          type: string
+        actor:
+          type: object
+          required: [id, type]
+          properties:
+            id:
+              type: string
+            type:
+              type: string
+              enum: [USER, SERVICE]
+        residency:
+          type: string
+          enum: [US, EU, APAC]
+        recordedAt:
+          type: string
+          format: date-time
+    ErrorEnvelope:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message, correlationId]
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            correlationId:
+              type: string
+            retryable:
+              type: boolean
+            remediation:
+              type: string
+  responses:
+    ValidationError:
+      description: Schema validation failure.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    ConflictError:
+      description: Version conflict or duplicate config set detected.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    NotFoundError:
+      description: Requested config set or secret not found for tenant/residency.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    PreconditionFailed:
+      description: Provided revision fingerprint does not match current version.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    InternalError:
+      description: Unexpected server error.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    AuthError:
+      description: Missing or invalid authentication.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'

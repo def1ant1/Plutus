@@ -1,0 +1,572 @@
+openapi: 3.1.0
+info:
+  title: Plutus Identity and Access Management API
+  version: 2025.1.0
+  description: |
+    Endpoints for managing tenant principals, role assignments, OAuth2 client credentials,
+    and policy evaluations. All responses include governance metadata and residency tagging
+    required for downstream compliance reporting.
+  contact:
+    name: IAM Platform Team
+    email: iam@plutus.example.com
+servers:
+  - url: https://iam.api.plutus.example.com
+    description: Global control plane with per-call residency scoping enforced via ABAC policies.
+  - url: https://iam.sandbox.plutus.example.com
+    description: Sandbox with anonymized datasets for partner integration.
+security:
+  - oauth2:
+      - iam.principals.write
+      - iam.principals.read
+      - iam.roles.write
+      - iam.clients.write
+      - iam.policies.evaluate
+  - auditJwt: []
+tags:
+  - name: Principals
+    description: CRUD operations for human and workload identities.
+  - name: Roles
+    description: Manage RBAC/ABAC bindings and policy context expansions.
+  - name: OAuthClients
+    description: Rotate OAuth2 client credentials and scope grants.
+  - name: Diagnostics
+    description: Policy evaluation and health endpoints.
+paths:
+  /tenants/{tenantId}/principals:
+    get:
+      tags: [Principals]
+      summary: List principals for a tenant filtered by residency.
+      description: Provides an audited list of principals within the tenancy, filtered to the residency context provided.
+      operationId: listPrincipals
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/TenantIdPath'
+        - $ref: '#/components/parameters/ResidencyZone'
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [USER, SERVICE]
+          description: Optional principal type filter.
+      responses:
+        '200':
+          description: Principal summary list.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrincipalCollection'
+        '401':
+          $ref: '#/components/responses/AuthError'
+    post:
+      tags: [Principals]
+      summary: Create a new principal identity.
+      description: Registers a new user or workload principal and binds residency-aware claims.
+      operationId: createPrincipal
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/TenantIdPath'
+        - $ref: '#/components/parameters/ResidencyZone'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PrincipalDraft'
+      responses:
+        '201':
+          description: Principal created and policy context minted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Principal'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+        '422':
+          $ref: '#/components/responses/ValidationError'
+  /tenants/{tenantId}/principals/{principalId}:
+    patch:
+      tags: [Principals]
+      summary: Update principal attributes and policy claims.
+      description: Applies partial updates to principal metadata while persisting audit history.
+      operationId: updatePrincipal
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/TenantIdPath'
+        - $ref: '#/components/parameters/ResidencyZone'
+        - name: principalId
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: 'prn_[a-zA-Z0-9]{16}'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PrincipalPatch'
+      responses:
+        '200':
+          description: Principal updated.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Principal'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+    delete:
+      tags: [Principals]
+      summary: Deactivate a principal identity.
+      description: Soft deletes a principal and revokes active credentials while leaving audit history intact.
+      operationId: deletePrincipal
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/TenantIdPath'
+        - $ref: '#/components/parameters/ResidencyZone'
+        - name: principalId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Principal deactivated; audit log event recorded.
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+  /tenants/{tenantId}/roles/{roleId}/assignments:
+    put:
+      tags: [Roles]
+      summary: Replace role assignments for a principal.
+      description: Replaces the set of role grants for a principal and issues iam.role.assigned events.
+      operationId: setRoleAssignments
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/TenantIdPath'
+        - $ref: '#/components/parameters/ResidencyZone'
+        - name: roleId
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: 'role_[a-z0-9\-]{6,36}'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoleAssignmentRequest'
+      responses:
+        '200':
+          description: Role assignments persisted and `iam.role.assigned` event emitted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoleAssignmentResult'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+  /oauth/clients:
+    post:
+      tags: [OAuthClients]
+      summary: Provision a new OAuth2 client credentials record.
+      description: Creates a new confidential client anchored to tenant residency metadata.
+      operationId: createOAuthClient
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ResidencyZoneOptional'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OAuthClientDraft'
+      responses:
+        '201':
+          description: Client minted with residency-scoped credentials.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OAuthClient'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+  /oauth/clients/{clientId}/rotate:
+    post:
+      tags: [OAuthClients]
+      summary: Rotate client secret material.
+      description: Rotates client secrets and distributes them to downstream services.
+      operationId: rotateOAuthClient
+      parameters:
+        - name: clientId
+          in: path
+          required: true
+          schema:
+            type: string
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ResidencyZoneOptional'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason:
+                  type: string
+      responses:
+        '200':
+          description: New secret minted and distributed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OAuthClientSecretRotation'
+  /diagnostics/policy-evaluation:
+    post:
+      tags: [Diagnostics]
+      summary: Evaluate a policy bundle with the given input payload.
+      description: Runs a dry-run policy evaluation returning decision and metrics for diagnostics.
+      operationId: evaluatePolicy
+      parameters:
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/ResidencyZoneOptional'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PolicyEvaluationRequest'
+      responses:
+        '200':
+          description: Evaluation results for requested policies.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolicyEvaluationResponse'
+  /_health:
+    get:
+      tags: [Diagnostics]
+      summary: IAM service health probe.
+      description: Returns readiness indicators for IAM service dependencies.
+      operationId: healthProbe
+      responses:
+        '200':
+          description: Health status.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [OK]
+                  dependencies:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                        status:
+                          type: string
+                        residencyAligned:
+                          type: boolean
+components:
+  securitySchemes:
+    oauth2:
+      type: oauth2
+      flows:
+        clientCredentials:
+          tokenUrl: https://iam.api.plutus.example.com/oauth2/token
+          scopes:
+            iam.principals.write: Manage principals.
+            iam.principals.read: Read principal metadata.
+            iam.roles.write: Manage role assignments.
+            iam.clients.write: Manage OAuth clients.
+            iam.policies.evaluate: Execute policy evaluations.
+    auditJwt:
+      type: http
+      scheme: bearer
+      bearerFormat: jwt
+      description: Signed service tokens containing residency, tenant, and actor claims.
+  parameters:
+    TenantId:
+      name: X-Tenant-Id
+      in: header
+      required: true
+      schema:
+        type: string
+    TenantIdPath:
+      name: tenantId
+      in: path
+      required: true
+      schema:
+        type: string
+    ResidencyZone:
+      name: X-Tenant-Residency
+      in: header
+      required: true
+      schema:
+        type: string
+        enum: [US, EU, APAC]
+    ResidencyZoneOptional:
+      name: X-Tenant-Residency
+      in: header
+      required: false
+      schema:
+        type: string
+        enum: [US, EU, APAC]
+  schemas:
+    PrincipalDraft:
+      type: object
+      required: [principalId, type, displayName, email, residency]
+      properties:
+        principalId:
+          type: string
+        type:
+          type: string
+          enum: [USER, SERVICE]
+        displayName:
+          type: string
+        email:
+          type: string
+          format: email
+        residency:
+          type: string
+          enum: [US, EU, APAC]
+        attributes:
+          type: object
+          additionalProperties:
+            type: string
+    Principal:
+      allOf:
+        - $ref: '#/components/schemas/PrincipalDraft'
+        - type: object
+          required: [status, createdAt, updatedAt, policies]
+          properties:
+            status:
+              type: string
+              enum: [ACTIVE, DISABLED]
+            createdAt:
+              type: string
+              format: date-time
+            updatedAt:
+              type: string
+              format: date-time
+            policies:
+              type: array
+              items:
+                type: object
+                required: [policyId, version]
+                properties:
+                  policyId:
+                    type: string
+                  version:
+                    type: string
+                  effect:
+                    type: string
+                    enum: [ALLOW, DENY, REVIEW]
+            audit:
+              $ref: '#/components/schemas/AuditContext'
+    PrincipalPatch:
+      type: object
+      properties:
+        displayName:
+          type: string
+        attributes:
+          type: object
+          additionalProperties:
+            type: string
+        status:
+          type: string
+          enum: [ACTIVE, DISABLED]
+        residency:
+          type: string
+          enum: [US, EU, APAC]
+    PrincipalCollection:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Principal'
+    RoleAssignmentRequest:
+      type: object
+      required: [principalId, assignments]
+      properties:
+        principalId:
+          type: string
+        assignments:
+          type: array
+          items:
+            type: object
+            required: [scope, attributes]
+            properties:
+              scope:
+                type: string
+              attributes:
+                type: object
+                additionalProperties:
+                  type: string
+              expiresAt:
+                type: string
+                format: date-time
+    RoleAssignmentResult:
+      type: object
+      required: [roleId, principalId, version, audit]
+      properties:
+        roleId:
+          type: string
+        principalId:
+          type: string
+        version:
+          type: string
+        audit:
+          $ref: '#/components/schemas/AuditContext'
+    OAuthClientDraft:
+      type: object
+      required: [name, scopes, residency]
+      properties:
+        name:
+          type: string
+        scopes:
+          type: array
+          items:
+            type: string
+        residency:
+          type: string
+          enum: [US, EU, APAC]
+        description:
+          type: string
+    OAuthClient:
+      allOf:
+        - $ref: '#/components/schemas/OAuthClientDraft'
+        - type: object
+          required: [clientId, createdAt, lastRotatedAt]
+          properties:
+            clientId:
+              type: string
+            createdAt:
+              type: string
+              format: date-time
+            lastRotatedAt:
+              type: string
+              format: date-time
+            audit:
+              $ref: '#/components/schemas/AuditContext'
+    OAuthClientSecretRotation:
+      type: object
+      required: [clientId, secret, rotatedAt, residency]
+      properties:
+        clientId:
+          type: string
+        secret:
+          type: string
+          description: Base64 encoded secret. Only returned once; clients must store securely.
+        rotatedAt:
+          type: string
+          format: date-time
+        residency:
+          type: string
+          enum: [US, EU, APAC]
+    PolicyEvaluationRequest:
+      type: object
+      required: [policies, input]
+      properties:
+        policies:
+          type: array
+          items:
+            type: string
+          description: Policy bundle identifiers to evaluate (e.g., governance.bundle.v1).
+        input:
+          type: object
+          additionalProperties: {}
+          description: JSON payload forwarded to Rego evaluator.
+    PolicyEvaluationResponse:
+      type: object
+      required: [results]
+      properties:
+        results:
+          type: array
+          items:
+            type: object
+            required: [policyId, version, decision, metrics]
+            properties:
+              policyId:
+                type: string
+              version:
+                type: string
+              decision:
+                type: string
+                enum: [ALLOW, DENY, REVIEW]
+              metrics:
+                type: object
+                properties:
+                  evaluationMs:
+                    type: integer
+                  residencyZone:
+                    type: string
+                    enum: [US, EU, APAC]
+              advice:
+                type: array
+                items:
+                  type: string
+    AuditContext:
+      type: object
+      required: [traceId, actorId, actorType, residency]
+      properties:
+        traceId:
+          type: string
+        actorId:
+          type: string
+        actorType:
+          type: string
+          enum: [USER, SERVICE]
+        residency:
+          type: string
+          enum: [US, EU, APAC]
+        recordedAt:
+          type: string
+          format: date-time
+    ErrorEnvelope:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message, correlationId]
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            correlationId:
+              type: string
+            remediation:
+              type: string
+            status:
+              type: integer
+  responses:
+    ValidationError:
+      description: Validation or policy violation.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    ConflictError:
+      description: Duplicate resource or conflicting revision detected.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    NotFoundError:
+      description: Resource missing in residency cell.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+    AuthError:
+      description: Authentication or authorization failure.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
