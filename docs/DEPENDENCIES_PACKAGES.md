@@ -17,3 +17,6 @@ plutus/docs/DEPENDENCIES_PACKAGES.md
 
 ## APIs (swappable behind adapters)
 Open Banking (Plaid/Tink/TrueLayer), KYC/AML (Onfido/Stripe/Trulioo + Refinitiv/ComplyAdvantage), Fraud (SentiLink/Sardine), Bureaus (Experian/Equifax/TransUnion), E-Sign (DocuSign/Adobe), Core Banking (FIS/Jack Henry/Finastra/Temenos), LLM (Azure OpenAI + vLLM fallback).
+
+## Recommended Integration Partners
+See `integrations/PARTNERS.md` for category-by-category recommendations, SLAs, residency notes, and fallback strategies.
