@@ -9,6 +9,16 @@ application.created, intake.completed, kyc.completed, kyb.completed, fraud.evalu
 
 Each event includes: tenant, residency tag, idempotency key, PII token refs, model/policy hashes (as applicable).
 
+> **Contracts**: `contracts/events/lifecycle.asyncapi.yaml`, `contracts/events/schemas/*.avsc`. AsyncAPI + Avro enforce tenant residency, audit, and policy metadata for automation.
+
+## HTTP Services
+
+- Intake API — `contracts/http/intake.openapi.yaml`
+- Configuration API — `contracts/http/config.openapi.yaml`
+- IAM API — `contracts/http/iam.openapi.yaml`
+
+All services embed residency headers, OAuth2 scopes, and standardized error envelopes for cross-team integration.
+
 ## Mermaid Entity Diagram (High-Level)
 ```mermaid
 erDiagram

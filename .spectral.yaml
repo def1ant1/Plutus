@@ -1,0 +1,27 @@
+extends:
+  - spectral:oas
+rules:
+  info-contact:
+    description: Every service must expose contact metadata for escalation.
+    given: $.info
+    severity: error
+    then:
+      field: contact
+      function: truthy
+  residency-header-present:
+    description: Ensure residency metadata is documented for list endpoints.
+    message: Path {path} must include residency parameter or header.
+    given: $.paths[*][*]
+    severity: warn
+    then:
+      function: pattern
+      field: parameters[*].name
+      functionOptions:
+        match: residency|X-Tenant-Residency
+  security-defined:
+    description: Security schemes must be defined when security is declared.
+    given: $
+    severity: error
+    then:
+      field: components.securitySchemes
+      function: truthy

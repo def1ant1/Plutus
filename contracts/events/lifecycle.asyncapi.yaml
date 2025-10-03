@@ -1,0 +1,309 @@
+asyncapi: 2.6.0
+id: urn:plutus:contracts:events:lifecycle
+info:
+  title: Plutus Domain Event Contracts
+  version: 2025.1.0
+  description: |
+    Residency-aware lifecycle event catalog for the Plutus platform. All messages embed
+    tenant metadata, residency declarations, and audit trails. Schemas are Avro based
+    and versioned with FULL compatibility guarantees across releases.
+  contact:
+    name: Event Engineering
+    email: events@plutus.example.com
+    url: https://developer.plutus.example.com/events
+  license:
+    name: Business Source License 1.1
+    url: https://developer.plutus.example.com/licenses/bsl
+defaultContentType: application/json
+tags:
+  - name: intake
+    description: Intake and application lifecycle events.
+  - name: config
+    description: Configuration promotion and governance signals.
+  - name: iam
+    description: Identity and access management lifecycle events.
+servers:
+  production:
+    url: kafka+ssl://{region}.events.plutus.example.com:9093
+    protocol: kafka-secure
+    protocolVersion: '2.8'
+    description: Regionalized Kafka clusters with residency enforcement.
+    variables:
+      region:
+        default: us1
+        enum: [us1, eu1, ap1]
+  staging:
+    url: kafka+ssl://staging.events.plutus.example.com:9093
+    protocol: kafka-secure
+    protocolVersion: '2.8'
+    description: Shared staging cluster for contract testing.
+channels:
+  application.created.v1:
+    description: Fired when a new intake application is accepted into the system.
+    servers: [production, staging]
+    subscribe:
+      operationId: onApplicationCreated
+      summary: Consumers such as orchestration and decisioning services.
+      message:
+        $ref: '#/components/messages/ApplicationCreated'
+  config.changed.v1:
+    description: Broadcast when a config set is promoted or materially updated.
+    subscribe:
+      operationId: onConfigChanged
+      message:
+        $ref: '#/components/messages/ConfigChanged'
+  iam.role.assigned.v1:
+    description: Emitted whenever role assignments are updated for a principal.
+    subscribe:
+      operationId: onIamRoleAssigned
+      message:
+        $ref: '#/components/messages/IamRoleAssigned'
+components:
+  messageTraits:
+    ResidencyAware:
+      headers:
+        type: object
+        required: [x-trace-id, x-region]
+        properties:
+          x-trace-id:
+            type: string
+            description: Correlates message to originating HTTP call or workflow.
+          x-region:
+            type: string
+            enum: [us1, eu1, ap1]
+            description: Physical cell the message originated from.
+      bindings:
+        kafka:
+          key:
+            type: string
+            description: Partition key derived from tenantId to maintain ordering.
+          schemaIdLocation: header
+          schemaIdPayloadEncoding: string
+          schemaLookupStrategy: TopicNameStrategy
+  messages:
+    ApplicationCreated:
+      messageId: application.created.v1
+      name: application.created
+      title: Application Created
+      summary: Intake submission accepted for downstream processing.
+      traits:
+        - $ref: '#/components/messageTraits/ResidencyAware'
+      contentType: application/json
+      x-avro-schema: ./schemas/application.created.v1.avsc
+      payload:
+        $ref: '#/components/schemas/ApplicationCreatedPayload'
+      bindings:
+        kafka:
+          partitions: 12
+          topic: application.created.v1
+    ConfigChanged:
+      messageId: config.changed.v1
+      name: config.changed
+      title: Configuration Changed
+      summary: Config set promoted or updated, requiring caches to refresh.
+      traits:
+        - $ref: '#/components/messageTraits/ResidencyAware'
+      contentType: application/json
+      x-avro-schema: ./schemas/config.changed.v1.avsc
+      payload:
+        $ref: '#/components/schemas/ConfigChangedPayload'
+      bindings:
+        kafka:
+          partitions: 6
+          topic: config.changed.v1
+    IamRoleAssigned:
+      messageId: iam.role.assigned.v1
+      name: iam.role.assigned
+      title: IAM Role Assigned
+      summary: Role assignments updated for a principal.
+      traits:
+        - $ref: '#/components/messageTraits/ResidencyAware'
+      contentType: application/json
+      x-avro-schema: ./schemas/iam.role.assigned.v1.avsc
+      payload:
+        $ref: '#/components/schemas/IamRoleAssignedPayload'
+      bindings:
+        kafka:
+          partitions: 6
+          topic: iam.role.assigned.v1
+  schemas:
+    TenantResidencyContext:
+      type: object
+      required: [tenantId, residencyZone, lawfulBasis]
+      properties:
+        tenantId:
+          type: string
+        residencyZone:
+          type: string
+          enum: [US, EU, APAC]
+        lawfulBasis:
+          type: string
+          enum: [CONSENT, CONTRACT, LEGAL_OBLIGATION]
+        controllerEntity:
+          type: string
+    AuditEnvelope:
+      type: object
+      required: [emittedAt, correlationId, actor]
+      properties:
+        emittedAt:
+          type: string
+          format: date-time
+        correlationId:
+          type: string
+        actor:
+          type: object
+          required: [id, type]
+          properties:
+            id:
+              type: string
+            type:
+              type: string
+              enum: [SERVICE, USER]
+            residency:
+              type: string
+              enum: [US, EU, APAC]
+    ApplicationCreatedPayload:
+      type: object
+      required:
+        - eventVersion
+        - tenant
+        - applicationId
+        - submissionId
+        - status
+        - applicant
+        - financialSummary
+        - documentCount
+        - policyHashes
+        - audit
+      properties:
+        eventVersion:
+          type: string
+        emittedAt:
+          type: string
+          format: date-time
+        tenant:
+          $ref: '#/components/schemas/TenantResidencyContext'
+        applicationId:
+          type: string
+        submissionId:
+          type: string
+        status:
+          type: string
+          enum: [QUEUED, VALIDATING, READY_FOR_DECISION, BLOCKED]
+        applicant:
+          type: object
+          required: [applicantId, piiTokenReference, residencyZone]
+          properties:
+            applicantId:
+              type: string
+            piiTokenReference:
+              type: string
+            residencyZone:
+              type: string
+              enum: [US, EU, APAC]
+        financialSummary:
+          type: object
+          properties:
+            declaredIncome:
+              type: number
+            currency:
+              type: string
+            bankingProvider:
+              type: string
+        documentCount:
+          type: integer
+        policyHashes:
+          type: array
+          items:
+            type: string
+        audit:
+          $ref: '#/components/schemas/AuditEnvelope'
+    ConfigChangedPayload:
+      type: object
+      required:
+        - eventVersion
+        - tenant
+        - configSetId
+        - name
+        - revision
+        - status
+        - policyBundles
+        - changeSummary
+        - audit
+      properties:
+        eventVersion:
+          type: string
+        emittedAt:
+          type: string
+          format: date-time
+        tenant:
+          $ref: '#/components/schemas/TenantResidencyContext'
+        configSetId:
+          type: string
+        name:
+          type: string
+        revision:
+          type: string
+        status:
+          type: string
+          enum: [DRAFT, ACTIVE, RETIRED]
+        effectiveAt:
+          type: string
+          format: date-time
+          nullable: true
+        policyBundles:
+          type: array
+          items:
+            type: string
+        changeSummary:
+          type: object
+          required: [actorId, actorType, description]
+          properties:
+            actorId:
+              type: string
+            actorType:
+              type: string
+              enum: [SERVICE, USER]
+            description:
+              type: string
+        audit:
+          $ref: '#/components/schemas/AuditEnvelope'
+    IamRoleAssignedPayload:
+      type: object
+      required:
+        - eventVersion
+        - tenant
+        - principalId
+        - roleId
+        - assignments
+        - audit
+      properties:
+        eventVersion:
+          type: string
+        emittedAt:
+          type: string
+          format: date-time
+        tenant:
+          $ref: '#/components/schemas/TenantResidencyContext'
+        principalId:
+          type: string
+        roleId:
+          type: string
+        assignments:
+          type: array
+          items:
+            type: object
+            required: [scope, attributes]
+            properties:
+              scope:
+                type: string
+              attributes:
+                type: object
+                additionalProperties:
+                  type: string
+              expiresAt:
+                type: string
+                format: date-time
+                nullable: true
+        audit:
+          $ref: '#/components/schemas/AuditEnvelope'

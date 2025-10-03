@@ -1,0 +1,96 @@
+{
+  "type": "record",
+  "name": "ApplicationCreated",
+  "namespace": "com.plutus.events.intake",
+  "doc": "Emitted when an intake submission transitions into the platform event stream.",
+  "fields": [
+    {
+      "name": "eventVersion",
+      "type": "string",
+      "doc": "Semantic version of the event contract; enables FULL compatibility tracking."
+    },
+    {
+      "name": "emittedAt",
+      "type": { "type": "long", "logicalType": "timestamp-millis" },
+      "doc": "UTC timestamp when the event was recorded."
+    },
+    {
+      "name": "tenant",
+      "type": {
+        "type": "record",
+        "name": "TenantResidency",
+        "fields": [
+          { "name": "tenantId", "type": "string", "doc": "Canonical tenant identifier." },
+          { "name": "residencyZone", "type": { "type": "enum", "name": "ResidencyZone", "symbols": ["US", "EU", "APAC"] }, "doc": "Residency cell where processing occurs." },
+          { "name": "lawfulBasis", "type": { "type": "enum", "name": "LawfulBasis", "symbols": ["CONSENT", "CONTRACT", "LEGAL_OBLIGATION"] }, "doc": "Legal basis for processing." },
+          { "name": "controllerEntity", "type": "string", "doc": "Legal entity acting as data controller." }
+        ]
+      },
+      "doc": "Tenant and residency metadata applied to all downstream handlers."
+    },
+    {
+      "name": "applicationId",
+      "type": "string",
+      "doc": "System-minted identifier for the intake submission."
+    },
+    {
+      "name": "submissionId",
+      "type": "string",
+      "doc": "Client submission identifier used for idempotency."
+    },
+    {
+      "name": "status",
+      "type": { "type": "enum", "name": "ApplicationStatus", "symbols": ["QUEUED", "VALIDATING", "READY_FOR_DECISION", "BLOCKED"] },
+      "doc": "Current pipeline status at emit time."
+    },
+    {
+      "name": "applicant",
+      "type": {
+        "type": "record",
+        "name": "ApplicantReference",
+        "fields": [
+          { "name": "applicantId", "type": "string" },
+          { "name": "piiTokenReference", "type": "string", "doc": "Token referencing encrypted PII stored in vault." },
+          { "name": "residencyZone", "type": "ResidencyZone", "doc": "Applicant residency zone." }
+        ]
+      },
+      "doc": "Primary applicant metadata; excludes raw PII."
+    },
+    {
+      "name": "financialSummary",
+      "type": {
+        "type": "record",
+        "name": "FinancialSummary",
+        "fields": [
+          { "name": "declaredIncome", "type": "double" },
+          { "name": "currency", "type": "string" },
+          { "name": "bankingProvider", "type": "string" }
+        ]
+      }
+    },
+    {
+      "name": "documentCount",
+      "type": "int",
+      "doc": "Number of documents attached at emit time."
+    },
+    {
+      "name": "policyHashes",
+      "type": { "type": "array", "items": "string" },
+      "doc": "Ordered list of policy bundle hashes applied during intake validation."
+    },
+    {
+      "name": "audit",
+      "type": {
+        "type": "record",
+        "name": "Audit",
+        "fields": [
+          { "name": "correlationId", "type": "string" },
+          { "name": "traceId", "type": "string" },
+          { "name": "actorId", "type": "string" },
+          { "name": "actorType", "type": { "type": "enum", "name": "ActorType", "symbols": ["SERVICE", "USER"] } },
+          { "name": "residencyZone", "type": "ResidencyZone" }
+        ]
+      }
+    }
+  ]
+}

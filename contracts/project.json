@@ -1,0 +1,49 @@
+{
+  "$schema": "../node_modules/nx/schemas/project-schema.json",
+  "name": "contracts",
+  "projectType": "library",
+  "sourceRoot": "contracts",
+  "targets": {
+    "openapi-validate": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm exec make contracts-openapi-validate"
+      }
+    },
+    "asyncapi-validate": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm exec make contracts-asyncapi-validate"
+      }
+    },
+    "avro-validate": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm exec make contracts-avro-validate"
+      }
+    },
+    "validate": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm exec make contracts-validate"
+      },
+      "dependsOn": [
+        {
+          "target": "openapi-validate"
+        },
+        {
+          "target": "asyncapi-validate"
+        },
+        {
+          "target": "avro-validate"
+        }
+      ]
+    },
+    "docs": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "pnpm exec make contracts-docs"
+      }
+    }
+  }
+}

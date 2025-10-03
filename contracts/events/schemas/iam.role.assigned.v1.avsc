@@ -1,0 +1,39 @@
+{
+  "type": "record",
+  "name": "IamRoleAssigned",
+  "namespace": "com.plutus.events.iam",
+  "doc": "Notification that IAM role assignments changed for a principal.",
+  "fields": [
+    { "name": "eventVersion", "type": "string" },
+    { "name": "emittedAt", "type": { "type": "long", "logicalType": "timestamp-millis" } },
+    {
+      "name": "tenant",
+      "type": "com.plutus.events.intake.TenantResidency"
+    },
+    { "name": "principalId", "type": "string" },
+    { "name": "roleId", "type": "string" },
+    {
+      "name": "assignments",
+      "type": {
+        "type": "array",
+        "items": {
+          "type": "record",
+          "name": "RoleAssignment",
+          "fields": [
+            { "name": "scope", "type": "string" },
+            { "name": "attributes", "type": { "type": "map", "values": "string" } },
+            {
+              "name": "expiresAt",
+              "type": ["null", { "type": "long", "logicalType": "timestamp-millis" }],
+              "default": null
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "audit",
+      "type": "com.plutus.events.intake.Audit"
+    }
+  ]
+}

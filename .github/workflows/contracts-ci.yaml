@@ -1,0 +1,52 @@
+name: Contracts Validation
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+jobs:
+  validate-contracts:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PNPM
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8.15.4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate contracts (Spectral/AsyncAPI/Avro)
+        run: pnpm contracts:validate
+
+      - name: Generate contract artifacts (HTML/PDF)
+        run: pnpm contracts:docs
+
+      - name: Upload OpenAPI artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: openapi-artifacts
+          path: contracts/artifacts/http
+          if-no-files-found: warn
+
+      - name: Upload AsyncAPI artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: asyncapi-artifacts
+          path: contracts/artifacts/events
+          if-no-files-found: warn
