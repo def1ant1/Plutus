@@ -1,0 +1,45 @@
+openapi: 3.0.3
+info:
+  title: Plutus Partner API
+  version: 1.0.0
+  description: >
+    Partner endpoints for applicants and partners. All requests must include a JWT (OIDC)
+    and are rate-limited at the gateway. Response envelopes include trace IDs.
+servers:
+  - url: https://api.plutus.example.com
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Error:
+      type: object
+      properties:
+        traceId: { type: string }
+        code: { type: string }
+        message: { type: string }
+security:
+  - bearerAuth: []
+
+paths:
+  /v1/partners/applications:
+    post:
+      summary: Partner-submitted application
+      operationId: partnerCreateApplication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PartnerApplication'
+      responses:
+        '202': { description: Accepted }
+components:
+  schemas:
+    PartnerApplication:
+      type: object
+      properties:
+        partnerId: { type: string }
+        payload: { type: object, additionalProperties: true }

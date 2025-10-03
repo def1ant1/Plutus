@@ -1,0 +1,45 @@
+openapi: 3.0.3
+info:
+  title: Plutus Internal API
+  version: 1.0.0
+  description: >
+    Internal endpoints for applicants and partners. All requests must include a JWT (OIDC)
+    and are rate-limited at the gateway. Response envelopes include trace IDs.
+servers:
+  - url: https://internal.plutus.example.com
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Error:
+      type: object
+      properties:
+        traceId: { type: string }
+        code: { type: string }
+        message: { type: string }
+security:
+  - bearerAuth: []
+
+paths:
+  /v1/internal/adverse-actions:
+    post:
+      summary: Record an adverse action with reason codes (Reg B/FCRA)
+      operationId: recordAdverseAction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [applicationId, reasons]
+              properties:
+                applicationId: { type: string }
+                reasons:
+                  type: array
+                  items: { type: string }
+                narrative: { type: string }
+      responses:
+        '204': { description: No Content }

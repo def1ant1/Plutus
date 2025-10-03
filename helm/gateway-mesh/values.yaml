@@ -1,0 +1,19 @@
+# values.yaml for plutus-gateway-mesh
+kong:
+  enabled: true
+  image:
+    repository: kong
+    tag: "3.7"
+  env:
+    database: "off"
+    plugins: "bundled"
+  proxy:
+    type: ClusterIP
+    http:
+      enabled: true
+      servicePort: 80
+  ingressController:
+    enabled: true
+    installCRDs: true
+rateLimit:
+  minute: 600

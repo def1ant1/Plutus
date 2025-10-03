@@ -1,0 +1,86 @@
+# values.yaml for plutus-observability
+kubePrometheusStack:
+  enabled: true
+  fullnameOverride: kube-prom-stack
+  prometheus:
+    prometheusSpec:
+      retention: 15d
+      scrapeInterval: 15s
+  grafana:
+    enabled: false  # using separate grafana chart below
+
+loki:
+  enabled: true
+  loki:
+    auth_enabled: false
+  singleBinary:
+    replicas: 1
+  write:
+    replicas: 1
+  read:
+    replicas: 1
+
+tempo:
+  enabled: true
+  tempo:
+    storage:
+      trace:
+        backend: local  # change to s3/gcs in prod
+  persistence:
+    enabled: false
+
+grafana:
+  enabled: true
+  adminUser: admin
+  adminPassword: admin
+  service:
+    type: ClusterIP
+  datasources:
+    datasources.yaml:
+      apiVersion: 1
+      datasources:
+        - name: Prometheus
+          type: prometheus
+          url: http://kube-prom-stack-prometheus:9090
+          access: proxy
+          isDefault: true
+        - name: Loki
+          type: loki
+          url: http://loki:3100
+        - name: Tempo
+          type: tempo
+          url: http://tempo:3100
+  dashboards:
+    default:
+      api-overview:
+        json: |
+          {
+            "title": "API Overview",
+            "panels": [ { "type": "stat", "title": "HTTP 5xx (5m)", "targets":[{"expr":"sum(rate(http_requests_total{status=~\"5..\"}[5m]))"}]} ]
+          }
+
+otelCollector:
+  enabled: true
+  mode: deployment
+  presets:
+    logsCollection:
+      enabled: false
+  config:
+    receivers:
+      otlp:
+        protocols: { http: {}, grpc: {} }
+    processors:
+      batch: {}
+    exporters:
+      prometheus:
+        endpoint: 0.0.0.0:9464
+      otlp:
+        endpoint: tempo:4317
+        tls: { insecure: true }
+      loki:
+        endpoint: http://loki:3100/loki/api/v1/push
+    service:
+      pipelines:
+        metrics: { receivers: [otlp], processors: [batch], exporters: [prometheus] }
+        traces:  { receivers: [otlp], processors: [batch], exporters: [otlp] }
+        logs:    { receivers: [otlp], processors: [batch], exporters: [loki] }

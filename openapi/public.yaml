@@ -1,0 +1,122 @@
+openapi: 3.0.3
+info:
+  title: Plutus Public API
+  version: 1.0.0
+  description: >
+    Public endpoints for applicants and partners. All requests must include a JWT (OIDC)
+    and are rate-limited at the gateway. Response envelopes include trace IDs.
+servers:
+  - url: https://api.plutus.example.com
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Error:
+      type: object
+      properties:
+        traceId: { type: string }
+        code: { type: string }
+        message: { type: string }
+security:
+  - bearerAuth: []
+
+paths:
+  /v1/leads:
+    post:
+      summary: Ingest a marketing lead
+      operationId: createLead
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LeadCreate'
+      responses:
+        '201':
+          description: Created
+          headers:
+            X-Trace-Id: { schema: { type: string } }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Lead' }
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+  /v1/applications:
+    post:
+      summary: Submit a loan application
+      operationId: createApplication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApplicationCreate'
+      responses:
+        '201': { description: Created }
+  /v1/decisions/{applicationId}:
+    get:
+      summary: Get underwriting decision
+      operationId: getDecision
+      parameters:
+        - in: path
+          name: applicationId
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Decision
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Decision' }
+        '404': { description: Not Found }
+components:
+  schemas:
+    LeadCreate:
+      type: object
+      required: [email]
+      properties:
+        email: { type: string, format: email }
+        company: { type: string }
+        source: { type: string, enum: [webscrape, referral, campaign] }
+        attributes:
+          type: object
+          additionalProperties: true
+    Lead:
+      type: object
+      properties:
+        id: { type: string }
+        email: { type: string }
+        company: { type: string }
+        createdAt: { type: string, format: date-time }
+    ApplicationCreate:
+      type: object
+      required: [party, product]
+      properties:
+        party:
+          type: object
+          properties:
+            firstName: { type: string }
+            lastName: { type: string }
+            ssn: { type: string, description: "Encrypted via FLE" }
+            address: { type: string }
+        product:
+          type: object
+          properties:
+            type: { type: string, enum: [term, revolver, equipment] }
+            amount: { type: number }
+            currency: { type: string, default: USD }
+    Decision:
+      type: object
+      properties:
+        applicationId: { type: string }
+        status: { type: string, enum: [approved, conditional, declined, pending] }
+        score: { type: number }
+        reasons:
+          type: array
+          items: { type: string, description: "Adverse action reason codes if declined" }

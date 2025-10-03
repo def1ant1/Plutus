@@ -1,0 +1,18 @@
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: rl-global
+  namespace: gateway
+plugin: rate-limiting
+config:
+  minute: 600
+  policy: local
+---
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: jwt-verify
+  namespace: gateway
+plugin: jwt
+config:
+  claims_to_verify: ["exp"]

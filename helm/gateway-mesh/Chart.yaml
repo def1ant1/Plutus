@@ -1,0 +1,6 @@
+apiVersion: v2
+name: plutus-gateway-mesh
+description: Kong Gateway config and Istio traffic policies for external egress and resiliency
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
