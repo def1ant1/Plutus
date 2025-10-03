@@ -1,0 +1,25 @@
+{
+  "name": "plutus",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Plutus platform monorepo",
+  "scripts": {
+    "build": "pnpm -r --filter ./services/... run build && pnpm -r --filter ./libs/... run build",
+    "test": "pnpm -r run test",
+    "lint": "pnpm -r run lint",
+    "format": "pnpm -r run format",
+    "security:audit": "pnpm audit || true",
+    "security:trivy": "trivy fs --scanners vuln,secret --severity HIGH,CRITICAL --exit-code 1 --ignore-unfixed .",
+    "ci": "pnpm lint && pnpm test && pnpm security:audit && pnpm security:trivy"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.5",
+    "@types/node": "^18.19.21",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.1.1",
+    "typescript": "^5.4.2"
+  },
+  "pnpm": {
+    "packageManager": "pnpm@8.15.4"
+  }
+}
