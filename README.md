@@ -1,5 +1,5 @@
 plutus/README.md
-# Plutus — Ultimate AI Loan Origination Platform (US & EU)
+# Plutus — AI Loan Origination Platform (US & EU)
 
 > **Enterprise-grade, AI-first origination** for SMB & mid-market enterprise lending.  
 > **Tenets:** Compliance-by-design • Explainable-by-default • Event-driven • Multi-tenant & multi-region • API-first • Observable • Cost-aware.
