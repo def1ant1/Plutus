@@ -1,0 +1,29 @@
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: residency-latency-injection
+  labels:
+    app.kubernetes.io/part-of: plutus
+    observability.plutus.dev/slo: portal-latency
+  annotations:
+    runbook.plutus.dev/execute: chaos-drills
+    runbook.plutus.dev/rollback: portal-auto-rollback
+spec:
+  action: delay
+  mode: all
+  delay:
+    latency: '250ms'
+    jitter: '50ms'
+  selector:
+    namespaces:
+      - portal
+    labelSelectors:
+      app.kubernetes.io/name: portal-web
+  target:
+    selector:
+      namespaces:
+        - orchestrator
+      labelSelectors:
+        app.kubernetes.io/name: orchestrator-svc
+    mode: all
+  duration: '5m'

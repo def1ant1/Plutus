@@ -4,6 +4,7 @@ import {
   initializeWorkflow,
 } from '@plutus/core-domain';
 import { loadConfig } from '@plutus/config';
+import { getLogger } from './lib/telemetry.server';
 import styles from './page.module.css';
 
 const config = loadConfig();
@@ -120,6 +121,15 @@ const stageDescriptions: Record<string, string> = {
  * data to provide fast feedback loops during pre-production hardening.
  */
 export default function Index(): JSX.Element {
+  const logger = getLogger();
+  logger.info(
+    {
+      totalSteps: stepsWithStatus.length,
+      env: config.env,
+    },
+    'Rendering portal workflow timeline',
+  );
+
   return (
     <main className={styles['page']}>
       <section className={styles['headerPanel']}>

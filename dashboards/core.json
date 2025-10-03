@@ -1,0 +1,35 @@
+{
+  "title": "Plutus Core Platform",
+  "annotations": {
+    "list": [
+      {
+        "name": "Chaos Events",
+        "datasource": "Loki",
+        "enable": true,
+        "expr": "{app=\"plutus\"}",
+        "iconColor": "rgba(255, 96, 96, 1)"
+      }
+    ]
+  },
+  "panels": [
+    {
+      "type": "graph",
+      "title": "Trace Volume by Tenant",
+      "targets": [
+        {
+          "expr": "sum(rate(otel_span_duration_ms_bucket{tenant_id!\"\"}[5m])) by (tenant_id)",
+          "legendFormat": "{{tenant_id}}"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Error Budget Burn",
+      "targets": [
+        {
+          "expr": "sum(increase(plutus_error_budget_burn_total[30d]))"
+        }
+      ]
+    }
+  ]
+}
