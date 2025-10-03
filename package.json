@@ -15,27 +15,38 @@
     "ci": "pnpm lint && pnpm test && pnpm contracts:validate && pnpm security:audit && pnpm security:trivy"
   },
   "devDependencies": {
-    "@types/jest": "^29.5.5",
-    "@types/node": "^18.19.21",
     "@asyncapi/cli": "^2.7.0",
     "@asyncapi/generator": "^1.17.25",
     "@asyncapi/html-template": "^0.28.2",
     "@asyncapi/react-component": "^2.6.4",
+    "@nx/nest": "^21.6.3",
+    "@nx/next": "^21.6.3",
+    "@nx/playwright": "^21.6.3",
+    "@playwright/test": "^1.42.1",
     "@redocly/cli": "^1.21.0",
     "@stoplight/spectral-cli": "^6.11.0",
-    "@playwright/test": "^1.42.1",
+    "@swc-node/register": "~1.9.1",
+    "@swc/cli": "~0.6.0",
+    "@swc/core": "~1.5.7",
+    "@types/jest": "^29.5.5",
+    "@types/node": "^18.19.21",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
     "avsc": "^5.7.6",
     "cypress": "^13.7.0",
-    "nx": "^18.0.0",
+    "jest": "^29.7.0",
+    "lodash.sortby": "^4.7.0",
+    "nx": "^21.6.3",
     "pdfkit": "^0.13.0",
     "puppeteer": "^21.11.0",
-    "lodash.sortby": "^4.7.0",
-    "yaml": "^2.4.2",
-    "jest": "^29.7.0",
     "ts-jest": "^29.1.1",
-    "typescript": "^5.4.2"
+    "typescript": "^5.4.2",
+    "yaml": "^2.4.2"
   },
   "pnpm": {
     "packageManager": "pnpm@8.15.4"
+  },
+  "dependencies": {
+    "@swc/helpers": "~0.5.11"
   }
 }
