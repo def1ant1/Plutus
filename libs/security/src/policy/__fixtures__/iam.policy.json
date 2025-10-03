@@ -1,0 +1,23 @@
+{
+  "version": "2024-03-01",
+  "entrypoints": {
+    "iam.tenants.create": [
+      {
+        "allRoles": ["iam.admin"],
+        "conditions": [
+          { "field": "claims.residency", "operator": "eq", "value": "us" }
+        ],
+        "remediation": ["route to US operations team"],
+        "reasons": ["tenant_creation_requires_us_residency"]
+      }
+    ],
+    "iam.keys.rotate": [
+      {
+        "anyRole": ["iam.admin", "iam.operator"],
+        "conditions": [
+          { "field": "resource.rotationType", "operator": "in", "value": ["standard", "automated"] }
+        ]
+      }
+    ]
+  }
+}

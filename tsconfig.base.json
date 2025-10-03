@@ -1,0 +1,27 @@
+{
+  "compilerOptions": {
+    "target": "ES2021",
+    "module": "CommonJS",
+    "lib": ["ES2021"],
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "outDir": "dist",
+    "rootDir": ".",
+    "strict": true,
+    "noImplicitAny": true,
+    "moduleResolution": "Node",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "types": ["node", "jest"],
+    "baseUrl": ".",
+    "paths": {
+      "@plutus/security": ["libs/security/src/index"],
+      "@plutus/security/*": ["libs/security/src/*"],
+      "@plutus/iam": ["services/iam-svc/src"],
+      "@plutus/iam/*": ["services/iam-svc/src/*"]
+    }
+  },
+  "exclude": ["node_modules", "dist"]
+}

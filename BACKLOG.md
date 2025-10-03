@@ -6,3 +6,9 @@
 - [ ] Wire orchestrator-svc to a live Temporal cluster and replace the in-memory workflow snapshot with real client calls once infrastructure endpoints are available. Evidence: `services/orchestrator-svc/src/app/app.service.ts`.
 - [ ] Expand Playwright coverage to validate portal-web against real API responses and accessibility audits. Evidence: `apps/portal-web-e2e/project.json`.
 - [ ] Remove the temporary `skipLibCheck` override once Nx publishes a compatible `@nx/react` schema for TypeScript ≥5.5. Evidence: `apps/portal-web/tsconfig.json`.
+
+## 2024-03-01
+
+- [ ] Implement config-svc stub or contract tests to satisfy tenant residency lookups without live HTTP dependency. Evidence: `libs/security/src/claims/tenant-claims-enricher.ts`.
+- [ ] Generate signed OPA bundles and replace JSON decision matrix stub with compiled WASM artifact. Evidence: `services/iam-svc/src/policies/decision-matrix.json`.
+- [ ] Expose health and readiness endpoints plus audit log sinks for iam-svc to integrate with platform observability SLIs. Evidence: `services/iam-svc/src/app/app.module.ts`.

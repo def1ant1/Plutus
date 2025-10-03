@@ -1,0 +1,49 @@
+{
+  "version": "2024-03-01",
+  "entrypoints": {
+    "iam.tenants.create": [
+      {
+        "allRoles": ["iam.admin"],
+        "conditions": [
+          { "field": "claims.residency", "operator": "eq", "value": "us" }
+        ],
+        "reasons": ["tenant_creation_requires_us_residency"],
+        "remediation": ["Escalate to US regional approver"]
+      },
+      {
+        "allRoles": ["iam.admin"],
+        "conditions": [
+          { "field": "claims.residency", "operator": "eq", "value": "eu" },
+          { "field": "environment.regulation", "operator": "in", "value": ["gdpr"] }
+        ],
+        "reasons": ["gdpr_admin_required"],
+        "remediation": ["Assign EU GDPR delegate"]
+      }
+    ],
+    "iam.serviceAccounts.create": [
+      {
+        "anyRole": ["iam.admin", "iam.automation"],
+        "conditions": [
+          { "field": "resource.trustLevel", "operator": "in", "value": ["standard", "elevated"] }
+        ]
+      }
+    ],
+    "iam.keys.rotate": [
+      {
+        "anyRole": ["iam.admin", "iam.operator"],
+        "conditions": [
+          { "field": "resource.rotationType", "operator": "in", "value": ["standard", "automated"] }
+        ]
+      },
+      {
+        "allRoles": ["iam.admin"],
+        "conditions": [
+          { "field": "resource.rotationType", "operator": "eq", "value": "breakglass" },
+          { "field": "environment.breakglassApproved", "operator": "eq", "value": true }
+        ],
+        "reasons": ["breakglass_requires_admin"],
+        "remediation": ["Collect breakglass approval"]
+      }
+    ]
+  }
+}

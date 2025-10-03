@@ -1,0 +1,25 @@
+{
+  "$schema": "https://example.com/plutus/iam-policy.schema.json",
+  "bundle": "opa-lite",
+  "generatedAt": "2024-03-01T00:00:00Z",
+  "entrypoints": {
+    "iam.tenants.create": "authorize_tenant_create",
+    "iam.serviceAccounts.create": "authorize_service_account",
+    "iam.keys.rotate": "authorize_key_rotation"
+  },
+  "documentation": {
+    "claims": {
+      "tenant_id": "Authoritative tenant identifier minted by Auth0/Azure AD.",
+      "residency": "Config-svc derived field describing the regulatory home for the tenant (us, eu, apac).",
+      "roles": "Set of coarse-grained IAM roles used for RBAC checks.",
+      "scopes": "Fine-grained OAuth scopes representing API permissions.",
+      "act": "Impersonation actor claim (per RFC 8693) used for just-in-time support elevation.",
+      "impersonation_reason": "Business justification captured by the initiator and audited downstream."
+    },
+    "impersonationSafeguards": [
+      "Tokens minted via impersonation flows MUST include `act.sub` and `impersonation_reason` claims.",
+      "Policies deny destructive actions unless the impersonator holds `iam.support` AND the target residency matches their clearance.",
+      "Audit middleware persists both original subject and impersonator in append-only logs for forensics."
+    ]
+  }
+}
