@@ -1,0 +1,19 @@
+# crm_marketing_scraping/configs/sources.yaml
+business_directories:
+  - name: ExampleDirectory
+    url: https://example.com/industry/widgets
+    type: html
+    css_selectors:
+      row: "div.company-card"
+      company: ".name"
+      email: ".email a"
+    throttle_ms: 1500
+gov_contracts:
+  - name: SAM.gov
+    type: api
+    base_url: https://api.sam.gov/opportunities/v2/search
+    params:
+      postedFrom: "2024-01-01"
+      noticeType: "Award Notice"
+      limit: 50
+    api_key_env: SAM_API_KEY
