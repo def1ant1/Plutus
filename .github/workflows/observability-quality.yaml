@@ -1,0 +1,78 @@
+name: Observability & Supply-Chain Quality
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  supply-chain:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare workspace
+        run: mkdir -p artifacts
+      - uses: anchore/syft-action@v0.17.0
+        with:
+          output: spdx-json=artifacts/sbom.spdx.json
+      - uses: anchore/grype-action@v0.14.0
+        with:
+          sbom: artifacts/sbom.spdx.json
+          output-format: json
+          output-file: artifacts/grype.json
+      - uses: aquasecurity/trivy-action@0.18.0
+        with:
+          scan-type: fs
+          format: json
+          output: artifacts/trivy.json
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+      - name: Upload supply-chain artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: supply-chain-evidence
+          path: artifacts
+
+  observability:
+    needs: supply-chain
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v2
+        with:
+          version: 8.15.4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18.19.0'
+          cache: 'pnpm'
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Build observability library
+        run: pnpm --filter @plutus/observability build
+      - name: Validate chaos experiments
+        run: pnpm nx run chaos:validate --skip-nx-cache
+      - name: Run Playwright smoke probes
+        run: pnpm nx run synthetics:playwright --skip-nx-cache
+      - name: Run Cypress smoke probes
+        run: pnpm nx run synthetics:cypress --skip-nx-cache
+      - name: Run k6 smoke probes
+        run: pnpm nx run synthetics:k6 --skip-nx-cache
+      - name: Upload synthetic + chaos reports
+        uses: actions/upload-artifact@v4
+        with:
+          name: observability-reports
+          path: |
+            dist/reports
+          if-no-files-found: warn
+
+  chaos-harness:
+    needs: observability
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Attach chaos experiment manifests
+        uses: actions/upload-artifact@v4
+        with:
+          name: chaos-templates
+          path: chaos/experiments

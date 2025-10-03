@@ -1,0 +1,15 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "synthetics",
+  "targets": {
+    "playwright": {
+      "command": "node tools/synthetics/scripts/run-playwright-smoke.mjs"
+    },
+    "cypress": {
+      "command": "node tools/synthetics/scripts/run-cypress-smoke.mjs"
+    },
+    "k6": {
+      "command": "node tools/synthetics/scripts/run-k6-smoke.mjs"
+    }
+  }
+}

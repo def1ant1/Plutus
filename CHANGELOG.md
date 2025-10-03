@@ -1,5 +1,22 @@
 # Changelog
 
+## 2025-02-14 — Observability Platform Hardening
+
+### Added
+
+- Shipped `@plutus/observability` library wrapping OpenTelemetry, Prometheus, and pino with residency-aware span processors, logger adapters, and env config helpers for NestJS/Next.js. Evidence: `libs/observability/*`.
+- Wired iam-svc, orchestrator-svc, and portal-web to standardized telemetry bootstrap with tenant/residency tagging and reusable loggers. Evidence: `services/iam-svc/src/main.ts`, `services/orchestrator-svc/src/main.ts`, `apps/portal-web/src/instrumentation.ts`, `apps/portal-web/src/app/lib/telemetry.server.ts`.
+- Authored synthetic/chaos automation targets (Playwright, Cypress, k6) and chaos templates with Nx registration plus dashboards + docs. Evidence: `tools/synthetics/**`, `tools/chaos/**`, `chaos/experiments/*.yaml`, `docs/OBSERVABILITY_TESTING.md`, `dashboards/*.json`.
+- Established observability GitHub workflow for SBOM, Trivy/Grype scans, synthetic probes, and artifact archival. Evidence: `.github/workflows/observability-quality.yaml`.
+- Published runbooks covering telemetry onboarding, alert response, and chaos drills. Evidence: `runbooks/telemetry-onboarding.md`, `runbooks/alert-response.md`, `runbooks/chaos-drills.md`.
+
+### Testing
+
+- `pnpm install`
+- `pnpm --filter @plutus/observability build`
+- `pnpm nx run chaos:validate`
+- `pnpm nx run synthetics:playwright --skip-nx-cache`
+
 ## 2025-01-08 — Contract Governance Automation
 
 ### Added

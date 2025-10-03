@@ -1,0 +1,9 @@
+{
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "name": "chaos",
+  "targets": {
+    "validate": {
+      "command": "node tools/chaos/validate-experiments.mjs"
+    }
+  }
+}

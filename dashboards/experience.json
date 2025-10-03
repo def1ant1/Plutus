@@ -1,0 +1,24 @@
+{
+  "title": "Portal Experience",
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "p95 Page Load",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(web_vitals_lcp_bucket{service=\"portal-web\"}[5m])) by (le))"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "title": "Synthetic Journey Results",
+      "targets": [
+        {
+          "expr": "plutus_synthetic_checks_total{job=\"synthetics\"}",
+          "legendFormat": "{{probe}}"
+        }
+      ]
+    }
+  ]
+}

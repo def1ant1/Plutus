@@ -13,6 +13,8 @@
     }
   },
   "projects": {
-    "contracts": "contracts"
+    "contracts": "contracts",
+    "synthetics": "tools/synthetics",
+    "chaos": "tools/chaos"
   }
 }

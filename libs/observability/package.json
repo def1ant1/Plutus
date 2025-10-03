@@ -1,0 +1,33 @@
+{
+  "name": "@plutus/observability",
+  "version": "0.1.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "test": "echo 'No unit tests for observability yet; rely on integration checks'",
+    "lint": "eslint 'src/**/*.{ts,tsx}' --max-warnings=0",
+    "format": "prettier --write 'src/**/*.{ts,tsx,json,md}'"
+  },
+  "dependencies": {
+    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/auto-instrumentations-node": "^0.64.6",
+    "@opentelemetry/exporter-metrics-otlp-http": "^0.205.0",
+    "@opentelemetry/exporter-prometheus": "^0.205.0",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.205.0",
+    "@opentelemetry/resources": "^2.1.0",
+    "@opentelemetry/sdk-metrics": "^2.1.0",
+    "@opentelemetry/sdk-node": "^0.205.0",
+    "@opentelemetry/sdk-trace-base": "^2.1.0",
+    "@opentelemetry/semantic-conventions": "^1.37.0",
+    "pino": "^8.19.0"
+  },
+  "devDependencies": {
+    "@types/node": "^18.19.21",
+    "eslint": "^8.57.0",
+    "prettier": "^3.2.5"
+  }
+}

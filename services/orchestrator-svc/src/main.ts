@@ -11,6 +11,7 @@ import {
   createLogger,
   createLoggerAdapter,
   createTelemetrySdk,
+  resolveObservabilityOptionsFromEnv,
 } from '@plutus/observability';
 import { AppModule } from './app/app.module';
 
@@ -43,22 +44,24 @@ async function bootstrap(): Promise<void> {
     },
   );
 
-  const logger = createLogger({
-    serviceName: config.observability.serviceName,
+  const telemetryOptions = resolveObservabilityOptionsFromEnv({
+    serviceName: config.observability?.serviceName ?? 'orchestrator-svc',
+    serviceVersion: config.observability?.version,
     environment: config.env,
-    logLevel: config.observability.logLevel,
-    otlpTracesEndpoint: config.observability.otlpTracesEndpoint,
-    otlpMetricsEndpoint: config.observability.otlpMetricsEndpoint,
+    defaultTenantId:
+      config.observability?.defaultTenant ?? config.defaults?.tenantId ?? 'tenant-root',
+    defaultResidency:
+      config.observability?.defaultResidency ?? config.defaults?.residency ?? 'us',
+    resourceAttributes: {
+      'app.tier': 'orchestration',
+      'app.component': 'workflow-engine',
+    },
   });
+
+  const logger = createLogger(telemetryOptions);
   app.useLogger(createLoggerAdapter(logger));
 
-  const telemetrySdk = createTelemetrySdk({
-    serviceName: config.observability.serviceName,
-    environment: config.env,
-    logLevel: config.observability.logLevel,
-    otlpTracesEndpoint: config.observability.otlpTracesEndpoint,
-    otlpMetricsEndpoint: config.observability.otlpMetricsEndpoint,
-  });
+  const telemetrySdk = createTelemetrySdk(telemetryOptions);
   await telemetrySdk.start();
 
   app.enableShutdownHooks();

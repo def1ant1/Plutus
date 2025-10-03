@@ -1,0 +1,24 @@
+{
+  "title": "Identity Platform",
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Auth Success Rate",
+      "targets": [
+        {
+          "expr": "sum(rate(iam_auth_success_total[5m])) / sum(rate(iam_auth_requests_total[5m]))",
+          "legendFormat": "success-rate"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "ABAC Decisions",
+      "targets": [
+        {
+          "expr": "sum(rate(iam_abac_decisions_total[1m]))"
+        }
+      ]
+    }
+  ]
+}

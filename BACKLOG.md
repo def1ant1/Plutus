@@ -1,5 +1,11 @@
 # Backlog
 
+## 2025-02-14
+
+- [ ] Provide a Dockerless `k6` runner or managed service trigger so synthetic load tests can execute in sandboxed CI environments without Docker. Evidence: `tools/synthetics/scripts/run-k6-smoke.mjs`, `.github/workflows/observability-quality.yaml`.
+- [ ] Add headless Cypress binary/bootstrap automation to `observability-quality` workflow to avoid first-run downloads during PR validation. Evidence: `tools/synthetics/project.json`, `.github/workflows/observability-quality.yaml`.
+- [ ] Extend telemetry library with unit tests covering env resolution and logger adapters. Evidence: `libs/observability/src/env.ts`, `libs/observability/src/logger.ts`.
+
 ## 2025-01-08
 
 - [ ] Wire Avro schemas to managed schema registry with automated signature + compat enforcement. Evidence: `tools/scripts/validate-avro.mjs`, `contracts/events/schemas/`.
