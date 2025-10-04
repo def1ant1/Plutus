@@ -17,10 +17,12 @@
     "types": ["node", "jest"],
     "baseUrl": ".",
     "paths": {
-      "@plutus/security": ["libs/security/src/index"],
-      "@plutus/security/*": ["libs/security/src/*"],
       "@plutus/iam": ["services/iam-svc/src"],
-      "@plutus/iam/*": ["services/iam-svc/src/*"]
+      "@plutus/iam/*": ["services/iam-svc/src/*"],
+      "@plutus/observability": ["libs/observability/src/index"],
+      "@plutus/observability/*": ["libs/observability/src/*"],
+      "@plutus/security": ["libs/security/src/index"],
+      "@plutus/security/*": ["libs/security/src/*"]
     }
   },
   "exclude": ["node_modules", "dist"]

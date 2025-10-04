@@ -1,0 +1,32 @@
+{
+  "name": "@plutus/orchestrator-svc",
+  "version": "0.1.0",
+  "private": true,
+  "main": "dist/main.js",
+  "types": "dist/main.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.app.json",
+    "start": "node dist/main.js",
+    "dev": "ts-node src/main.ts",
+    "lint": "pnpm exec tsc -p tsconfig.app.json --noEmit"
+  },
+  "dependencies": {
+    "@fastify/compress": "^8.1.0",
+    "@fastify/cors": "^11.1.0",
+    "@fastify/helmet": "^13.0.2",
+    "@nestjs/common": "^10.3.3",
+    "@nestjs/core": "^10.3.3",
+    "@nestjs/platform-fastify": "^10.3.3",
+    "@plutus/observability": "workspace:*",
+    "fastify": "^4.26.2",
+    "reflect-metadata": "^0.1.13",
+    "rxjs": "^7.8.1"
+  },
+  "devDependencies": {
+    "@types/node": "^18.19.21",
+    "ts-node": "^10.9.2"
+  }
+}
