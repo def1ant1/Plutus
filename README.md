@@ -1,5 +1,4 @@
-# crm_marketing_scraping/README.md
-# Plutus CRM/Marketing/Scraping Services
+# Plutus
 
 This package provides production-ready scaffolding for:
 - Web **scraping** of business directories and government contract awards (API-first where available).
