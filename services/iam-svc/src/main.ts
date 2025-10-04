@@ -16,16 +16,20 @@ import {
   createTelemetrySdk,
   resolveObservabilityOptionsFromEnv,
 } from '@plutus/observability';
+import { loadConfig } from '@plutus/config';
 import { AppModule } from './app/app.module';
-import { loadConfig } from './config/config';
 
 async function bootstrap(): Promise<void> {
-  const config = loadConfig();
+  const platformConfig = loadConfig();
+  const iamConfig = platformConfig.services.iam;
   const telemetryOptions = resolveObservabilityOptionsFromEnv({
-    serviceName: 'iam-svc',
-    environment: process.env.NODE_ENV ?? 'development',
-    defaultTenantId: config.defaults.tenantId,
-    defaultResidency: config.defaults.residency,
+    serviceName: platformConfig.observability.serviceName ?? 'iam-svc',
+    serviceVersion: platformConfig.observability.version,
+    environment: platformConfig.env,
+    defaultTenantId:
+      platformConfig.observability.defaultTenant ?? platformConfig.defaults.tenantId,
+    defaultResidency:
+      platformConfig.observability.defaultResidency ?? platformConfig.defaults.residency,
     resourceAttributes: {
       'app.tier': 'identity',
       'app.component': 'iam-core',
@@ -63,29 +67,30 @@ async function bootstrap(): Promise<void> {
       transform: true,
     }),
   );
-  app.setGlobalPrefix(config.http.globalPrefix);
+  app.setGlobalPrefix(iamConfig.http.globalPrefix);
 
   const middleware = new AuthenticationMiddleware({
-    issuer: config.oidc.issuer,
-    audience: config.oidc.audience,
-    configService: { baseUrl: config.configService.baseUrl },
-    policyBundlePath: config.policy.bundlePath ?? join(__dirname, 'policies', 'decision-matrix.json'),
-    defaultTenant: config.defaults.tenantId,
-    defaultResidency: config.defaults.residency,
+    issuer: iamConfig.oidc.issuer,
+    audience: iamConfig.oidc.audience,
+    configService: { baseUrl: iamConfig.configService.baseUrl },
+    policyBundlePath:
+      iamConfig.policy.bundlePath ?? join(__dirname, 'policies', 'decision-matrix.json'),
+    defaultTenant: platformConfig.defaults.tenantId,
+    defaultResidency: platformConfig.defaults.residency,
   });
 
   adapter.getInstance().addHook('preHandler', middleware.handler);
 
-  await app.listen({ port: config.http.port, host: config.http.host });
+  await app.listen({ port: iamConfig.http.port, host: iamConfig.http.host });
   logger.info(
     {
-      host: config.http.host,
-      port: config.http.port,
-      prefix: config.http.globalPrefix,
-      tenant: config.defaults.tenantId,
-      residency: config.defaults.residency,
+      host: iamConfig.http.host,
+      port: iamConfig.http.port,
+      prefix: iamConfig.http.globalPrefix,
+      tenant: platformConfig.defaults.tenantId,
+      residency: platformConfig.defaults.residency,
     },
-    `iam-svc listening on http://${config.http.host}:${config.http.port}/${config.http.globalPrefix}`,
+    `iam-svc listening on http://${iamConfig.http.host}:${iamConfig.http.port}/${iamConfig.http.globalPrefix}`,
   );
 }
 
