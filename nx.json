@@ -33,6 +33,11 @@
       "tags": ["type:lib", "scope:platform"],
       "implicitDependencies": []
     },
+    "core-domain": {
+      "root": "libs/core-domain",
+      "tags": ["type:lib", "scope:domain"],
+      "implicitDependencies": []
+    },
     "portal-web": {
       "root": "apps/portal-web",
       "tags": ["type:web", "scope:portal"],

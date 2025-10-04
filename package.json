@@ -19,6 +19,8 @@
     "@asyncapi/generator": "^1.17.25",
     "@asyncapi/html-template": "^0.28.2",
     "@asyncapi/react-component": "^2.6.4",
+    "@nx/jest": "21.6.3",
+    "@nx/js": "21.6.3",
     "@nx/nest": "^21.6.3",
     "@nx/next": "^21.6.3",
     "@nx/playwright": "^21.6.3",
@@ -40,6 +42,7 @@
     "pdfkit": "^0.13.0",
     "puppeteer": "^21.11.0",
     "ts-jest": "^29.1.1",
+    "tslib": "^2.3.0",
     "typescript": "^5.4.2",
     "yaml": "^2.4.2"
   },

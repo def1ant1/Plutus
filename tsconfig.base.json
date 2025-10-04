@@ -21,6 +21,8 @@
       "@plutus/iam/*": ["services/iam-svc/src/*"],
       "@plutus/observability": ["libs/observability/src/index"],
       "@plutus/observability/*": ["libs/observability/src/*"],
+      "@plutus/core-domain": ["libs/core-domain/src/index"],
+      "@plutus/core-domain/*": ["libs/core-domain/src/*"],
       "@plutus/security": ["libs/security/src/index"],
       "@plutus/security/*": ["libs/security/src/*"]
     }
