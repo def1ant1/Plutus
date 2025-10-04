@@ -1,27 +1,3 @@
-declare module '@plutus/config' {
-  export interface PortalConfig {
-    env: string;
-    http: {
-      host: string;
-      port: number;
-      globalPrefix: string;
-    };
-    temporal: {
-      namespace: string;
-      taskQueue: string;
-    };
-    observability: {
-      otlpTracesEndpoint: string;
-      serviceName?: string;
-      version?: string;
-      defaultTenant?: string;
-      defaultResidency?: string;
-    };
-  }
-
-  export function loadConfig(env?: NodeJS.ProcessEnv): PortalConfig;
-}
-
 declare module '@plutus/core-domain' {
   export interface WorkflowStep {
     id: string;
